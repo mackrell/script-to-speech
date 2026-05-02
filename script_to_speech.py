@@ -3,7 +3,7 @@
 Script-to-Speech CLI
 
 Converts a multi-speaker text script into a single MP3 file
-using the ElevenLabs text-to-speech API.
+using the ElevenLabs text-to-dialogue API.
 
 Usage:
     python script_to_speech.py <script_file> [options]
@@ -18,8 +18,8 @@ from dotenv import load_dotenv
 
 from parser import parse_script
 from voices import get_client, fetch_voices, print_voices, resolve_all_voices
-from tts import generate_all_segments, DEFAULT_MODEL
-from audio import assemble, format_duration, DEFAULT_GAP_MS
+from tts import generate_dialogue, DEFAULT_MODEL
+from audio import save_audio, format_duration
 
 
 def get_api_key() -> str:
@@ -58,12 +58,12 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the CLI argument parser."""
     p = argparse.ArgumentParser(
         prog="script_to_speech",
-        description="Convert a multi-speaker text script into an MP3 using ElevenLabs TTS.",
+        description="Convert a multi-speaker text script into an MP3 using ElevenLabs text-to-dialogue API.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
             "  python script_to_speech.py script.txt\n"
-            "  python script_to_speech.py script.txt -o podcast.mp3 --gap 500\n"
+            "  python script_to_speech.py script.txt -o podcast.mp3\n"
             "  python script_to_speech.py script.txt --dry-run\n"
             "  python script_to_speech.py --list-voices\n"
         ),
@@ -80,23 +80,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output MP3 file path (default: output.mp3)",
     )
     p.add_argument(
-        "--gap",
-        type=int,
-        default=DEFAULT_GAP_MS,
-        help=f"Silence gap between segments in milliseconds (default: {DEFAULT_GAP_MS})",
-    )
-    p.add_argument(
-        "--model",
+        "-m", "--model",
         default=DEFAULT_MODEL,
         help=f"ElevenLabs model ID (default: {DEFAULT_MODEL})",
     )
     p.add_argument(
-        "--list-voices",
+        "-l", "--list-voices",
         action="store_true",
         help="List all available ElevenLabs voices and exit",
     )
     p.add_argument(
-        "--dry-run",
+        "-d", "--dry-run",
         action="store_true",
         help="Parse the script and show the plan without generating audio",
     )
@@ -130,17 +124,21 @@ def cmd_dry_run(args, api_key: str) -> None:
     voices = fetch_voices(client)
     voice_mapping = resolve_all_voices(result.speakers, result.voice_map, voices)
 
+    # Estimate chunking
+    total_chars = sum(len(text) for _, text in result.segments)
+
     # Print plan
     print(f"\n--- Dry Run Summary ---")
     print(f"Script:    {args.script_file}")
     print(f"Output:    {args.output}")
     print(f"Model:     {args.model}")
-    print(f"Gap:       {args.gap}ms")
+    print(f"API:       text-to-dialogue")
     print(f"Segments:  {len(result.segments)}")
+    print(f"Total characters: {total_chars}")
+
     print(f"\nVoice assignments:")
     for speaker in result.speakers:
         voice_id = voice_mapping[speaker]
-        # Find the voice name for display
         voice_name = next(
             (v["name"] for v in voices if v["voice_id"] == voice_id),
             voice_id
@@ -156,7 +154,7 @@ def cmd_dry_run(args, api_key: str) -> None:
 
 
 def cmd_generate(args, api_key: str) -> None:
-    """Full generation pipeline: parse -> resolve -> TTS -> assemble."""
+    """Full generation pipeline: parse -> resolve -> TTS -> save."""
     # Parse
     print(f"Parsing script: {args.script_file}")
     result = parse_script(args.script_file)
@@ -170,16 +168,16 @@ def cmd_generate(args, api_key: str) -> None:
     voices = fetch_voices(client)
     voice_mapping = resolve_all_voices(result.speakers, result.voice_map, voices)
 
-    # Generate TTS
-    audio_segments = generate_all_segments(
+    # Generate via text-to-dialogue API
+    audio_chunks = generate_dialogue(
         client=client,
         segments=result.segments,
         voice_mapping=voice_mapping,
         model_id=args.model,
     )
 
-    # Assemble
-    duration = assemble(audio_segments, args.output, gap_ms=args.gap)
+    # Save output
+    duration = save_audio(audio_chunks, args.output)
 
     # Summary
     print(f"\nDone! Saved to {args.output} "
