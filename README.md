@@ -62,7 +62,7 @@ python script_to_speech.py my_script.txt -o output.mp3
 python script_to_speech.py my_script.txt -o output.mp3 --gap 500
 
 # Use a specific model
-python script_to_speech.py my_script.txt --model eleven_multilingual_v3
+python script_to_speech.py my_script.txt --model eleven_v3
 ```
 
 ## Options
@@ -71,6 +71,6 @@ python script_to_speech.py my_script.txt --model eleven_multilingual_v3
 |------|---------|-------------|
 | `-o`, `--output` | `output.mp3` | Output file path |
 | `--gap` | `300` | Silence between segments (ms) |
-| `--model` | `eleven_multilingual_v3` | ElevenLabs model ID |
+| `--model` | `eleven_v3` | ElevenLabs model ID |
 | `--list-voices` | — | List voices and exit |
 | `--dry-run` | — | Show plan without generating |

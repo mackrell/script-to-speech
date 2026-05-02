@@ -39,12 +39,21 @@ def _parse_header(lines: list[str]) -> tuple[dict[str, str], int]:
             end_index = i + 1
             break
 
+        # Skip blank lines and comments in the header
+        if not stripped or stripped.startswith("#"):
+            continue
+
         if "=" in stripped:
             speaker, voice_value = stripped.split("=", 1)
             speaker = speaker.strip()
             voice_value = voice_value.strip()
             if speaker and voice_value:
                 voice_map[speaker.lower()] = voice_value
+        else:
+            print(f"Warning: Ignoring invalid header line: {stripped}",
+                  file=sys.stderr)
+            print(f"  Voice mappings must use '=' (e.g. Alice = Rachel)",
+                  file=sys.stderr)
     else:
         # No closing --- found; treat entire content as dialogue (no header)
         print("Warning: Opening '---' found but no closing '---'. "

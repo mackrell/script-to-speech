@@ -1,3 +1,2 @@
 elevenlabs
-pydub
 python-dotenv

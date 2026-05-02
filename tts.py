@@ -11,7 +11,7 @@ import time
 from elevenlabs import ElevenLabs
 
 
-DEFAULT_MODEL = "eleven_multilingual_v3"
+DEFAULT_MODEL = "eleven_v3"
 DEFAULT_OUTPUT_FORMAT = "mp3_44100_128"
 MAX_RETRIES = 5
 BASE_DELAY = 1.0  # seconds
